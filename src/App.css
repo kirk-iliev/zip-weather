@@ -2,8 +2,15 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  padding: 50px;
 }
 
 .forecast-column {
   flex: 1
+}
+
+.right-now {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }

@@ -11,3 +11,15 @@ body {
   justify-content: center;
   margin: 0;
 }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  border: 1px solid black
+}
+
+.table th, td, tr {
+  width: 100%;
+  border: 1px solid black;
+  min-width: 100px;
+}
