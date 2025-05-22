@@ -2,6 +2,8 @@ import { useState } from 'react'
 import './App.css'
 import zipData from './USCities.json'
 
+// Components
+
 function SearchBar({inputValue, setInputValue}) {
   return (
     <input
@@ -106,6 +108,8 @@ function CityName({ currentCity }) {
   return null
 }
 
+// Main app component
+
 export default function App() {
 
   const [detailedPeriods, setDetailedPeriods] = useState([])
@@ -114,6 +118,7 @@ export default function App() {
   const [currentCity, setCurrentCity] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
 
+  // Function to get latitude and longitude from zip code
   function getLatLong(inputValue) {
     const searchMatch =
       zipData.find(zips => zips.zip_code.toString() === inputValue.trim())
@@ -127,6 +132,7 @@ export default function App() {
     }
   }
 
+  // Function to fetch weather data from weather.gov API points endpoint
   function fetchWeatherData(lat, long) {
     fetch(`https://api.weather.gov/points/${lat},${long}`)
       .then((response) => response.json())
@@ -149,6 +155,7 @@ export default function App() {
         console.error('Error fetching weather data:', error)
       })
   }
+
   return (
 
     <div className='app-container'>
