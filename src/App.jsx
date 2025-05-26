@@ -1,16 +1,27 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import zipData from './USCities.json'
 
 // Components
 
-function SearchBar({inputValue, setInputValue}) {
+function SearchBar({inputValue, setInputValue, setShowSuggestions, setCurrentCity}) {
   return (
     <input
       value={inputValue}
-      onChange={(e) => setInputValue(e.target.value)}
+      onChange={(e) => {
+        const val = e.target.value;
+        setInputValue(val);
+        setShowSuggestions(/[a-zA-Z]/.test(val) && val.length > 0); // Show suggestions if input is a letter and not empty
+        setCurrentCity(val.trim()); // Update current city for display
+      }}
       placeholder="Enter zip code"
       type="text"
+      style={{
+        width: '50%',
+        maxWidth: '400px',
+        minWidth: '200px'
+      }}
+
     />
   );
 }
@@ -99,14 +110,18 @@ function RightNow({hourlyPeriods}) {
 }
 
 function CityName({ currentCity }) {
-  const cityMatch = zipData.find(zips => zips.zip_code.toString() === currentCity.trim())
-  if (cityMatch) {
-    return (
-      <h3>{cityMatch.city}, {cityMatch.state}</h3>
-    )
+  const trimmed = currentCity.trim();
+  const isZip = /^\d{5}$/.test(trimmed);
+  const match = isZip
+    ? zipData.find(z => z.zip_code.toString() === trimmed)
+    : zipData.find(z => z.city.toLowerCase() === trimmed.toLowerCase());
+
+  if (match) {
+    return <h3>{match.city}, {match.state}</h3>;
   }
-  return null
+  return null;
 }
+
 
 // Main app component
 
@@ -117,11 +132,24 @@ export default function App() {
   const [inputValue, setInputValue] = useState('')
   const [currentCity, setCurrentCity] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
+  const [cityList, setCityList] = useState([])
+  const suggestions = cityList.filter(city => city.city.toLowerCase().includes(inputValue.trim().toLowerCase()))
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+
+  useEffect(() => {
+    // Load the zip code data from the JSON file
+    setCityList(zipData);
+  }, [])
 
   // Function to get latitude and longitude from zip code
   function getLatLong(inputValue) {
-    const searchMatch =
-      zipData.find(zips => zips.zip_code.toString() === inputValue.trim())
+    const trimmedInput = inputValue.trim();
+    const isZip = /^\d{5}$/.test(trimmedInput); // Check if input is a valid 5-digit zip code
+    const searchMatch = isZip
+      ? zipData.find(zip => zip.zip_code.toString() === trimmedInput)
+      : zipData.find(zip => zip.city.toLowerCase() === trimmedInput.toLowerCase());
+
     console.log(searchMatch)
     if (searchMatch) {
       const lat = searchMatch.latitude
@@ -156,6 +184,12 @@ export default function App() {
       })
   }
 
+  function handleSelectSuggestion(zip) {
+    setInputValue(zip);
+    setShowSuggestions(false);
+    getLatLong(zip);
+  }
+
   return (
 
     <div className='app-container'>
@@ -166,9 +200,25 @@ export default function App() {
           <SearchBar
             setInputValue={setInputValue}
             inputValue={inputValue}
+            setShowSuggestions={setShowSuggestions}
+            setCurrentCity={setCurrentCity}
           />
-          <SearchButton onClick={() => getLatLong(inputValue)}/>
+          {inputValue.length > 0 && suggestions.length > 0 && showSuggestions && (
+          <div className="suggestions-dropdown">
+            {suggestions.slice(0, 15).map((s, index) => (
+              <div
+                key={index}
+                className="suggestion-item"
+                onClick={() => handleSelectSuggestion(s.zip_code.toString())}
+              >
+                {s.city}, {s.state} {s.zip_code}
+              </div>
+            ))}
+          </div>
+        )}
+
         </div>
+        <SearchButton onClick={() => getLatLong(inputValue)}/>
           <CityName
             currentCity={currentCity}
           />
