@@ -80,9 +80,10 @@ function RightNow({hourlyPeriods}) {
   return (
     <div className='right-now'>
       {hourlyPeriods.length > 0 && (
-        <div>
+        <div className='right-now-table'>
           <h3>Right Now: {hourlyPeriods[0].shortForecast}</h3>
           {/* create a table with current weather info */}
+          <div className='right-now-table-content'>
           <table>
             <tbody>
               <tr>
@@ -103,6 +104,7 @@ function RightNow({hourlyPeriods}) {
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

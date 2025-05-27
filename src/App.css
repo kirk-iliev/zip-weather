@@ -50,3 +50,20 @@
 .suggestion-item:hover {
   background-color: #f0f0f0;
 }
+
+.right-now-table {
+  display: flex;
+  flex-direction: column;
+  width: 350px;
+  align-items: center;
+  justify-content: center;
+}
+
+.right-now-table-content {
+  display: flex;
+  flex-direction: column;
+  width: 350px;
+  max-width: 75%;
+  align-items: center;
+  justify-content: center;
+}
