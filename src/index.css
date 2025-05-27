@@ -23,3 +23,8 @@ table {
   border: 1px solid black;
   min-width: 100px;
 }
+
+h2 {
+  margin: 10px;
+
+}
