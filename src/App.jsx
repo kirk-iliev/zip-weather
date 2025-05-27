@@ -137,7 +137,7 @@ export default function App() {
   // Function to get latitude and longitude from zip code
   function getLatLong(inputValue) {
     const trimmedInput = inputValue.trim();
-    const isZip = /^\d{3}|\d{4}|\d{5}$/.test(trimmedInput); // Check if input is a valid 5-digit zip code
+    const isZip = /^\d{3}|\d{4}|\d{5}$/.test(trimmedInput); // Check if input is a valid 3, 4, or 5-digit zip code
     const searchMatch = isZip
       ? zipData.find(zip => zip.zip_code.toString() === trimmedInput)
       : zipData.find(zip => zip.city.toLowerCase() === trimmedInput.toLowerCase());
@@ -188,7 +188,6 @@ export default function App() {
   }
 
   return (
-
     <div className='app-container'>
       <div className='weather-container'>
         <h1>ZipWeather ⛅</h1>
