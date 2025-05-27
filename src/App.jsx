@@ -4,24 +4,24 @@ import zipData from './USCities.json'
 
 // Components
 
-function SearchBar({inputValue, setInputValue, setShowSuggestions, setCurrentCity}) {
+function SearchBar({inputValue, setInputValue, setShowSuggestions, onKeyDown}) {
   return (
     <input
       value={inputValue}
       onChange={(e) => {
         const val = e.target.value;
         setInputValue(val);
-        setShowSuggestions(/[a-zA-Z]/.test(val) && val.length > 0); // Show suggestions if input is a letter and not empty
-        setCurrentCity(val.trim()); // Update current city for display
+        setShowSuggestions(/[a-zA-Z]/.test(val) && val.length > 0);
       }}
-      placeholder="Enter zip code"
+      placeholder="Enter zip code or city name"
       type="text"
       style={{
         width: '50%',
-        maxWidth: '400px',
+        maxWidth: '210px',
         minWidth: '200px'
       }}
-
+      onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
+      onKeyDown={onKeyDown}
     />
   );
 }
@@ -29,12 +29,12 @@ function SearchBar({inputValue, setInputValue, setShowSuggestions, setCurrentCit
 function SearchButton({onClick}) {
   return (
     <button onClick={onClick}>
-      Search
+      Search🔎
     </button>
   )
 }
 
-function ForecastColumnHourly({hourlyPeriods, hasSearched}) {
+function ForecastColumnHourly({hourlyPeriods, hasSearched, forecastTimeZone}) {
   return (
     <div className='forecast-column'>
       {hasSearched && <h3>Hourly Forecast</h3>}
@@ -44,7 +44,7 @@ function ForecastColumnHourly({hourlyPeriods, hasSearched}) {
           <div key={index}>
             <p>{
               new Date(period.startTime).toLocaleTimeString([], {
-                hour: 'numeric', minute: '2-digit'})
+                hour: 'numeric', minute: '2-digit', timeZone: forecastTimeZone})
               }
             </p>
             <p>
@@ -109,19 +109,10 @@ function RightNow({hourlyPeriods}) {
   )
 }
 
-function CityName({ currentCity }) {
-  const trimmed = currentCity.trim();
-  const isZip = /^\d{5}$/.test(trimmed);
-  const match = isZip
-    ? zipData.find(z => z.zip_code.toString() === trimmed)
-    : zipData.find(z => z.city.toLowerCase() === trimmed.toLowerCase());
-
-  if (match) {
-    return <h3>{match.city}, {match.state}</h3>;
-  }
-  return null;
+function CityName({ query }) {
+  if (!query) return null;
+  return <h2>{query.city}, {query.state}</h2>
 }
-
 
 // Main app component
 
@@ -130,11 +121,12 @@ export default function App() {
   const [detailedPeriods, setDetailedPeriods] = useState([])
   const [hourlyPeriods, setHourlyPeriods] = useState([])
   const [inputValue, setInputValue] = useState('')
-  const [currentCity, setCurrentCity] = useState('')
   const [hasSearched, setHasSearched] = useState(false)
   const [cityList, setCityList] = useState([])
   const suggestions = cityList.filter(city => city.city.toLowerCase().includes(inputValue.trim().toLowerCase()))
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [query, setQuery] = useState(null)
+  const [forecastTimeZone, setForecastTimeZone] = useState('PST')
 
 
   useEffect(() => {
@@ -145,7 +137,7 @@ export default function App() {
   // Function to get latitude and longitude from zip code
   function getLatLong(inputValue) {
     const trimmedInput = inputValue.trim();
-    const isZip = /^\d{5}$/.test(trimmedInput); // Check if input is a valid 5-digit zip code
+    const isZip = /^\d{3}|\d{4}|\d{5}$/.test(trimmedInput); // Check if input is a valid 5-digit zip code
     const searchMatch = isZip
       ? zipData.find(zip => zip.zip_code.toString() === trimmedInput)
       : zipData.find(zip => zip.city.toLowerCase() === trimmedInput.toLowerCase());
@@ -154,9 +146,10 @@ export default function App() {
     if (searchMatch) {
       const lat = searchMatch.latitude
       const long = searchMatch.longitude
+      setQuery(searchMatch);
       fetchWeatherData(lat, long)
     } else {
-      alert('Invalid zip code')
+      alert('Unable to find weather data for this location.')
     }
   }
 
@@ -168,6 +161,7 @@ export default function App() {
         console.log(data)
         const forecastSevenDayURL = data.properties.forecast
         const forecastHourlyURL = data.properties.forecastHourly
+        setForecastTimeZone(data.properties.timeZone)
         return Promise.all([
           fetch(forecastSevenDayURL).then((response) => response.json()),
           fetch(forecastHourlyURL).then((response) => response.json()),
@@ -177,7 +171,6 @@ export default function App() {
         setDetailedPeriods(dailyData.properties.periods)
         setHourlyPeriods(hourlyData.properties.periods)
         setHasSearched(true)
-        setCurrentCity(inputValue.trim())
       })
       .catch((error) => {
         console.error('Error fetching weather data:', error)
@@ -185,23 +178,30 @@ export default function App() {
   }
 
   function handleSelectSuggestion(zip) {
-    setInputValue(zip);
-    setShowSuggestions(false);
-    getLatLong(zip);
+    const match = zipData.find(z => z.zip_code.toString() === zip);
+    if (match) {
+      setInputValue(zip);
+      setQuery(match);
+      setShowSuggestions(false);
+      getLatLong(zip);
+    }
   }
 
   return (
 
     <div className='app-container'>
       <div className='weather-container'>
-        <h1>Weather</h1>
-
+        <h1>ZipWeather ⛅</h1>
         <div className='search-container'>
           <SearchBar
             setInputValue={setInputValue}
             inputValue={inputValue}
             setShowSuggestions={setShowSuggestions}
-            setCurrentCity={setCurrentCity}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                getLatLong(inputValue.toString());
+              }
+            }}
           />
           {inputValue.length > 0 && suggestions.length > 0 && showSuggestions && (
           <div className="suggestions-dropdown">
@@ -219,17 +219,18 @@ export default function App() {
 
         </div>
         <SearchButton onClick={() => getLatLong(inputValue)}/>
-          <CityName
-            currentCity={currentCity}
-          />
-          <RightNow
-            hourlyPeriods={hourlyPeriods}
-          />
+        <CityName
+          query={query}
+        />
+        <RightNow
+          hourlyPeriods={hourlyPeriods}
+        />
         {/* Two-column forecast container */}
         <div className='forecast-container'>
           <ForecastColumnHourly
             hourlyPeriods={hourlyPeriods}
             hasSearched={hasSearched}
+            forecastTimeZone={forecastTimeZone}
           />
           <ForecastColumnSevenDay
             detailedPeriods={detailedPeriods}
